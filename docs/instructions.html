@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="" xml:lang="">
+<head>
+  <meta charset="utf-8" />
+  <meta name="generator" content="pandoc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes" />
+  <title>instructions</title>
+  <style>
+    code{white-space: pre-wrap;}
+    span.smallcaps{font-variant: small-caps;}
+    div.columns{display: flex; gap: min(4vw, 1.5em);}
+    div.column{flex: auto; overflow-x: auto;}
+    div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+    /* The extra [class] is a hack that increases specificity enough to
+       override a similar rule in reveal.js */
+    ul.task-list[class]{list-style: none;}
+    ul.task-list li input[type="checkbox"] {
+      font-size: inherit;
+      width: 0.8em;
+      margin: 0 0.8em 0.2em -1.6em;
+      vertical-align: middle;
+    }
+  </style>
+  <link rel="stylesheet" href="pandoc.css" />
+  <script
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js"
+  type="text/javascript"></script>
+</head>
+<body>
+<h1
+id="cs440-online-fall-2026-mp-2-multi-agent-path-finding-and-task-planning">CS440
+Online Fall 2026, MP 2: Multi Agent Path Finding and Task Planning</h1>
+<h2 id="due-sunday-september-20-2026-1159-pm-cst">Due: Sunday, September
+20, 2026, 11:59 PM CST</h2>
+<h2 id="i.-overview">I. Overview</h2>
+<p>In this assignment you will be implementing a coupled state space for
+multi agent path finding (MAPF) and a boolean predicate state space for
+task planning (TP) in a block world. You will then implement the
+approach of your choosing for fast MAPF on hard instances. You will be
+solving search problems in these spaces using the same best_first_search
+implementation you used for MP1.</p>
+<h2 id="ii.-getting-started">II. Getting Started</h2>
+<p>To get started on this assignment look inside the template/
+directory. The template contains the following files and
+directories:</p>
+<ul>
+<li><p><code>search.py</code>. You will edit and submit this - you
+should copy over your code from MP1’s <code>search.py</code></p></li>
+<li><p><code>state.py</code>. You will edit and submit this - you should
+copy over your code from MP1’s <code>AbstractState</code> class (namely
+the implementation of the <code>__lt__(self, other)</code>
+function)</p></li>
+<li><p><code>mapf.py</code>. You will edit and submit this - your
+<code>MultiAgentGridState</code> class goes here</p></li>
+<li><p><code>hard_mapf.py</code>. You will edit and submit this - your
+fast solver for hard MAPF instances goes here</p></li>
+<li><p><code>task_planning.py</code>. You will edit and submit this -
+your <code>BlockWorld</code> actions and
+<code>BooleanPredicatesState</code> class go here</p></li>
+<li><p><code>main.py</code>. Main entry point for this assignment, you
+will be running this main file to test your code</p></li>
+<li><p><code>maze.py</code>. Some utilities we provide for working with
+Mazes, unchanged from MP1, except for visualization</p></li>
+<li><p><code>tp_vis.py</code>. Some utilities we provide for visualizing
+the task planning block world state space</p></li>
+<li><p><code>requirements.txt</code>. You can install the required
+packages with <code>pip install -r requirements.txt</code>, unchanged
+from MP1</p></li>
+<li><p><code>data/grid_multi_agent</code>. Text files containing example
+problems for multi agent grid state</p></li>
+<li><p><code>data/block_world</code>. JSON files containing example
+problems for block world</p></li>
+</ul>
+<p>Please ONLY submit <code>search.py</code>, <code>state.py</code>,
+<code>mapf.py</code>, <code>hard_mapf.py</code>, and
+<code>task_planning.py</code>.</p>
+<p>For each of the remaining parts of the assignment you will find TODOs
+in one of these five files where you need to write your own code. For
+example, for part III you will find TODOs marked
+<code># TODO(III)</code>. We’ve provided many comments and instructions
+in the code under those TODOs.</p>
+<p><em>Please be aware: our visualization code is not bulletproof. It
+does not check for correct types and return values, this is your
+responsibility. If your methods return the wrong types, such as failing
+to find a path when one exists, then the visualization may throw
+unexpected errors. In general if you are getting errors from our
+visualization code you should probably first do some debugging with
+print statements…</em></p>
+<h2 id="iii.-copy-code-from-mp1">III. Copy Code from MP1</h2>
+<p>There is 1 <code>TODO(III)</code> in each of <code>search.py</code>,
+<code>state.py</code>, and <code>mapf.py</code>.</p>
+<p>You need to copy over your <code>best_first_search</code>,
+<code>backtrack</code>, <code>manhattan</code>, and <code>__lt__</code>
+(in <code>AbstractState</code>) methods from MP1. If you did not finish
+these when doing MP1 you should go back and make sure you pass all the
+initial tests for MP1 which examined these functions (you should pass
+all tests related to “TODO(III)”’s in MP1), though we do provide some
+zero-point tests for this part on Gradescope.</p>
+<h2 id="iv.-multiagentgridstate">IV. MultiAgentGridState</h2>
+<figure align="center">
+<img src="mapf_swap_medium.png" width="420">
+<img src="mapf_swap_medium.gif" width="420">
+<figcaption align="center">
+<b>A solved multi-agent path finding instance, shown as a static path
+visualization and as an animation. Capital letters are agent starts and
+matching lowercase letters are their goals. Each agent follows its own
+colored track; small offsets are just to make overlapping paths easier
+to read. Unlike MP1 now agents can wait in place, which you can see in
+the animation.</b>
+</figcaption>
+</figure>
+<p>We now implement a grid state class to include multiple agents, each
+of which has a single goal. A <code>MultiAgentGridState.state</code> is
+a tuple of agent locations, for example <code>((1, 3), (4, 5))</code>
+for two agents. The matching <code>goal</code> is also a tuple, where
+<code>goal[i]</code> is the destination for <code>state[i]</code>. The
+order of agents must stay fixed throughout the search. The set of
+neighbors of a state are the set of all possible joint actions that can
+be taken by the agents. Notice that now, by default, the maze also
+allows waiting in place, meaning an agent may choose to remain in its
+current cell for one time step. The cost of one joint action is <span
+class="math inline">\(1\)</span>, no matter how many agents move or wait
+in place, and therefore the path length measures the number of time
+steps until all agents have reached their goals - the makespan.</p>
+<p>In <code>get_neighbors</code> you must reject two kinds of
+inter-agent collision:</p>
+<ul>
+<li>Vertex collision: two agents try to occupy the same cell at the same
+time</li>
+<li>Edge-swap collision: two agents try to swap cells in the same time
+step</li>
+</ul>
+<p>For example, the following scenario is an invalid edge-swap
+collision: agent 0 moves from cell <code>x=(i, j)</code> to
+<code>y=(k, l)</code> while agent 1 moves from cell
+<code>y=(k, l)</code> to <code>x=(i, j)</code>. In other words,
+<code>self.state[0] = x, self.state[1] = y, new_state[0] = y, new_state[1] = x</code>.</p>
+<p>Besides <code>get_neighbors</code>, there are 3 more
+<code>TODO(IV)</code> for you to complete in <code>mapf.py</code>:
+<code>is_goal</code> and two heuristic functions. <code>is_goal</code>
+should return True when all agents are at their goals. The two heuristic
+functions are the max and sum of the Manhattan distances from each agent
+to its goal. The max heuristic is admissible, while the sum heuristic is
+inadmissible. You may also implement your own better heuristics if you
+wish to experiment but notice that the autograder compares both path
+quality and number of explored states for the coupled MAPF cases.</p>
+<p>Run best_first_search on a coupled MAPF problem:</p>
+<pre><code>python3 main.py --problem_type=GridMultiAgent --use_heuristic --maze_file=data/grid_multi_agent/swap_small</code></pre>
+<p>You can replace <code>data/grid_multi_agent/swap_small</code> with
+another maze file in <code>data/grid_multi_agent</code>. The
+<code>--heuristic_type</code> flag can be set to <code>admissible</code>
+or <code>inadmissible</code>; it defaults to <code>admissible</code> for
+grid problems. If you’d like to see the effect of disallowing waiting
+you can add the <code>--disallow_waiting</code> flag, whose default
+value is False. If you would like to also visualize the resulting
+solution with matplotlib add the <code>--show_maze_vis</code> flag, or
+save the static visualization with
+<code>--save_maze=some_file.png</code>. To animate the solution, add
+<code>--animate_maze</code>. Notice some of the mazes we’ve provided are
+too hard for coupled MAPF - we will deal with those in part VII of this
+assignment.</p>
+<h2 id="v.-blockworld">V. BlockWorld</h2>
+<figure align="center">
+<img src="block_start_state.png" width="280">
+<img src="block_final_state.png" width="280">
+<img src="block_world_solution.gif" width="280">
+<figcaption align="center">
+<b>We now implement task planning for stacking blocks using an
+AbstractState space to represent Boolean predicates. Our implementation
+can accommodate any number of blocks and we will use the same best first
+search implementation along with two kinds of heuristics. In the case of
+the visualization above the goal conditions are {“A_is_on_B”,
+“B_is_on_C”, “C_is_on_D”} and the shortest plan has 10 actions, or 11
+states including the start. While the starting state is a full
+specification of the set of true facts, the goal condition is just a
+subset (notice how “A_is_on_top” is True here but not specified). In the
+animation, the title shows the action that produced each new state.</b>
+</figcaption>
+</figure>
+<p>We now implement a task planning state space for stacking blocks. The
+state should consist of a set of facts about the world, and actions
+require certain facts as preconditions and have some effect on the set
+of facts. Both facts and actions will be represented as functions which
+take as input zero or more objects (in our case the only object type is
+“block”).</p>
+<p>We are going to separate our code into two classes, a
+<code>World</code> class, which captures the predicates, actions, and
+objects that together make up our state space, and a
+<code>BooleanPredicatesState</code> class, which captures the current
+set of true facts about the world. Think of the <code>World</code> like
+the <code>Maze</code> from the MAPF problems and
+<code>BooleanPredicatesState</code> as the <code>GridState</code>. We’ve
+provided you most of the code related to defining the <code>World</code>
+and specifically the <code>BlockWorld</code> classes. You just need to
+fill in the 4 <code>TODO(V)</code> in <code>task_planning.py</code> for
+the 4 actions in this space.</p>
+<p>Each action is a static function that returns
+<code>(preconditions, postconditions)</code>.</p>
+<ul>
+<li><code>preconditions</code> is a set of facts that must already be
+true to take the action</li>
+<li><code>postconditions</code> is a dictionary with two keys:
+<ul>
+<li><code>"delete"</code> maps to facts that become false after the
+action</li>
+<li><code>"add"</code> maps to facts that become true after the
+action</li>
+</ul></li>
+</ul>
+<p>All preconditions and postconditions should be built from the
+predicate helpers already defined in <code>BlockWorld</code>, such as
+<code>BlockWorld.holding(block)</code> or
+<code>BlockWorld.block_on_block(blockA, blockB)</code>. For example, a
+precondition for <code>place(block)</code> is
+<code>BlockWorld.holding(block)</code>.</p>
+<h2 id="vi.-booleanpredicatesstate">VI. BooleanPredicatesState</h2>
+<p>We now move on to <code>BooleanPredicatesState</code>. There are 5
+<code>TODO(VI)</code> in <code>task_planning.py</code>.</p>
+<p>The first is <code>take_action(preconditions, postconditions)</code>
+which should be called with the preconditions and postconditions for a
+specific action. This function will be used to compute the set of facts
+that result from applying the action to the current state. It
+should:</p>
+<ul>
+<li>return <code>None</code> if the action’s preconditions are not all
+contained in <code>self.state</code>,</li>
+<li>otherwise return a new set of facts after applying the action,</li>
+<li>add every fact in <code>postconditions["add"]</code>,</li>
+<li>remove every fact in <code>postconditions["delete"]</code> unless
+<code>self.delete_relaxation</code> is True,</li>
+<li>never modify <code>self.state</code> in place</li>
+</ul>
+<p>The next TODO is <code>get_neighbors</code>. To generate neighbors,
+loop over every action in <code>self.world.actions</code>, ground that
+action with every possible tuple of object inputs, call
+<code>take_action</code>, and create a neighboring
+<code>BooleanPredicatesState</code> whenever the action is valid. The
+object types for each action are stored in
+<code>self.world.action_inputs</code>, and the available objects of each
+type are stored in <code>self.world.objects_by_type</code>. Similar to
+iterating over all possible combinations of agent actions in the Coupled
+MAPF part, to implement this grounding step you may find
+<code>itertools.product</code> useful.</p>
+<p>For the final TODOs, implement <code>is_goal</code> to return True
+when all goal facts are present in <code>self.state</code>. The goal is
+a subset condition, not an exact match. Then implement the two
+heuristics:</p>
+<ul>
+<li><code>compute_num_unsatisfied_goals_heuristic</code>: return the
+number of goal facts not currently present in
+<code>self.state</code></li>
+<li><code>compute_delete_relaxation_heuristic</code>: solve the relaxed
+problem from the current state, where delete postconditions are ignored,
+and return the length of that relaxed plan</li>
+</ul>
+<p>For the delete-relaxation heuristic, you can create a new
+<code>BooleanPredicatesState</code> with the same facts and goal but
+with <code>delete_relaxation=True</code>, then run
+<code>best_first_search</code> on that relaxed state. Notice how we do
+<strong>search</strong> in order to compute this heuristic but it is for
+an easier version of the problem.</p>
+<p>To run best_first_search on the provided BlockWorld problem:</p>
+<pre><code>python3 main.py --problem_type=BlockWorld --block_file=data/block_world/block_world_1.json</code></pre>
+<p>You can replace <code>data/block_world/block_world_1.json</code> with
+any other BlockWorld JSON file you create. Note that we have not
+provided you with many test cases in <code>data/block_world/</code>, you
+may want to write your own. Make sure to follow the same template. When
+running main, add <code>--use_heuristic</code> to use the heuristic
+selected by <code>--heuristic_type</code>. The
+<code>--heuristic_type</code> flag can be set to
+<code>num_unsatisfied_goals</code> or <code>delete_relaxation</code>; it
+defaults to <code>num_unsatisfied_goals</code> for BlockWorld. The
+<code>--spf=1.0</code> flag sets the seconds per frame for the
+visualization of the final path to <span
+class="math inline">\(1.0\)</span> seconds per frame. If you set
+<code>--spf=0</code> or any negative number you will not see the
+visualization of the final path.</p>
+<p>Note that some of our tests look at the number of states you explore
+during search. If you’d like to debug this quantity you can look at
+<code>maze.num_states_validated</code> or you can also print out
+<code>len(visited_states)</code> from your
+<code>best_first_search</code> implementation to see a related but
+slightly different quantity (make sure to remove such print statements
+before submitting). You should expect fewer explored states for better
+heuristics…</p>
+<h2 id="vii.-fast-mapf">VII. Fast MAPF</h2>
+<p>We wrap up this assignment by going back to MAPF. There are some
+problems in <code>data/grid_multi_agent</code> that are too difficult
+for coupled MAPF to solve, namely they will take a very long time. In
+<code>hard_mapf.py</code> you will find a single <code>TODO(VII)</code>
+to implement the <code>solve_hard_mapf_instance</code> method in the
+manner of your choosing. To get full credit you need to solve all 5 hard
+instances (mazes 2 through 6) in less than 20 seconds each on
+Gradescope.</p>
+<p>Again, your implementation (whether CBS or PBS or Prioritized Search
+or something else, whether using your implementation of
+<code>best_first_search</code> or not, etc.) is your choice. You will be
+graded on the <em>speed and correctness</em> of your solution but not
+the <em>path length or optimality</em>.</p>
+<p><code>solve_hard_mapf_instance(starts, goals, maze)</code> should
+return a list of paths, one path per agent:</p>
+<pre><code>[
+    [(r0, c0), (r1, c1), ...],  # path for agent 0
+    [(r0, c0), (r1, c1), ...],  # path for agent 1
+    ...
+]</code></pre>
+<p>The number of returned paths must equal <code>len(starts)</code>. For
+each agent <code>i</code>, <code>paths[i][0]</code> must equal
+<code>starts[i]</code>, and <code>paths[i][-1]</code> must equal
+<code>goals[i]</code>. Paths may have different lengths; after an agent
+reaches its goal, the autograder treats that agent as waiting at its
+final cell but that doesn’t mean this agent disappears! One common bug
+is ignoring an agent after it reaches its goal. The full set of paths
+must avoid walls, invalid moves, vertex collisions, and edge-swap
+collisions. These edge-swap collisions are often difficult to see in
+either a static image or a fast moving animation; we highly recommend
+writing your own tester to check for such collisions in a returned
+path.</p>
+<figure align="center">
+<img src="mapf_hard_maze_2.png" width="500">
+<figcaption align="center">
+<b>A hard MAPF instance solved by a faster, not-necessarily-optimal
+method. For Part VII, correctness and runtime matter; optimality does
+not.</b>
+</figcaption>
+</figure>
+<p>Run your hard MAPF solver on one of the hard mazes:</p>
+<pre><code>python3 main.py --problem_type=GridHard --maze_file=data/grid_multi_agent/maze_2</code></pre>
+<p>You can replace <code>data/grid_multi_agent/maze_2</code> with any
+maze file in <code>data/grid_multi_agent</code>. Notice that parameters
+like <code>--heuristic_type</code> and <code>--use_heuristic</code> are
+not used for <code>GridHard</code>; your
+<code>solve_hard_mapf_instance</code> function decides how to solve the
+problem.</p>
+<h2 id="submission-instructions">Submission Instructions</h2>
+<p>Submit the main part of this assignment by uploading
+<code>search.py</code>, <code>state.py</code>, <code>mapf.py</code>,
+<code>hard_mapf.py</code>, and <code>task_planning.py</code> to
+Gradescope. Do not forget to access Gradescope from the Launch App
+button in Coursera so that your grade is automatically sync’d.</p>
+<p>Before submitting, make sure to comment out any print statements you
+added for debugging, since extra output can slow down your code on the
+autograder.</p>
+<h2 id="policies">Policies</h2>
+<p>You are expected to be familiar with the general policies on the
+course syllabus (e.g. academic integrity). In particular, notice that
+this is an individual assignment and that you may not use external
+sources to write significant parts of your code for you.</p>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+    "objects": ["A", "B", "C", "D"],
+    "start_predicates": [
+        "A_is_on_top",
+        "D_is_on_top",
+        "A_is_on_B",
+        "D_is_on_C",
+        "B_is_on_table",
+        "C_is_on_table",
+        "arm_is_free"
+    ],
+    "goal_predicates": [
+        "A_is_on_B",
+        "B_is_on_C",
+        "C_is_on_D"
+    ]
+}
