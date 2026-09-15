@@ -2,9 +2,8 @@ from itertools import product
 
 from state import AbstractState
 
-# TODO(III): copy over your manhattan function from MP1 here
 def manhattan(a: tuple[int, int], b: tuple[int, int]) -> int:
-    raise NotImplementedError("You should copy over your manhattan function from MP1 here")
+    return sum(abs(x - y) for x, y in zip(a, b))
 
 class MultiAgentGridState(AbstractState):
     # state: a tuple of agent locations
