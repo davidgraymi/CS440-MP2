@@ -61,40 +61,65 @@ class BlockWorld(World):
     def on_table(block: str) -> str:
         return str(block)+"_is_on_table"
 
-    # TODO(V): implement the place method by filling in the preconditions and postconditions
     @staticmethod
     def place(block: str) -> tuple[set[str], dict[str, set[str]]]: # place a block on the table
-        preconditions = set()
+        preconditions = set({
+            BlockWorld.holding(block)
+        })
         postconditions = {
-            "delete": set(), 
-            "add": set()}
+            "delete": set({
+                BlockWorld.holding(block)
+            }), 
+            "add": set({
+                BlockWorld.on_table(block)
+            })
+        }
         return preconditions, postconditions
 
-    # TODO(V): implement the pickup method by filling in the preconditions and postconditions
     @staticmethod
     def pickup(block: str) -> tuple[set[str], dict[str, set[str]]]: # pickup a block from the table
-        preconditions = set()
+        preconditions = set({
+            BlockWorld.arm_is_free(),
+            BlockWorld.on_table(block)
+        })
         postconditions = {
-            "delete": set(), 
-            "add": set()}
+            "delete": set({
+                BlockWorld.arm_is_free(),
+                BlockWorld.on_table(block)
+            }), 
+            "add": set({
+                BlockWorld.holding(block)
+            })
+        }
         return preconditions, postconditions
 
-    # TODO(V): implement the unstack method by filling in the preconditions and postconditions
     @staticmethod
     def unstack(blockA: str, blockB: str) -> tuple[set[str], dict[str, set[str]]]: # unstack blockA from blockB
-        preconditions = set()
+        preconditions = set({
+            BlockWorld.block_on_block(blockA, blockB),
+            BlockWorld.arm_is_free()
+        })
         postconditions = {
-            "delete": set(), 
-            "add": set()}
+            "delete": set({
+                BlockWorld.block_on_block(blockA, blockB),
+                BlockWorld.arm_is_free()
+            }), 
+            "add": set({
+                BlockWorld.holding(blockA)
+            })
+        }
         return preconditions, postconditions
 
-    # TODO(V): implement the stack method by filling in the preconditions and postconditions
     @staticmethod
     def stack(blockA: str, blockB: str) -> tuple[set[str], dict[str, set[str]]]:
-        preconditions = set()
+        preconditions = set(BlockWorld.holding(blockA))
         postconditions = {
-            "delete": set(), 
-            "add": set()}
+            "delete": set(BlockWorld.holding(blockA)), 
+            "add": set({
+                BlockWorld.arm_is_free(),
+                BlockWorld.block_on_block(blockA, blockB)
+            })
+        }
         return preconditions, postconditions
 
 class BooleanPredicatesState(AbstractState):
@@ -113,11 +138,17 @@ class BooleanPredicatesState(AbstractState):
         self.prev_action = prev_action # store for visualization purposes
         super().__init__(state, goal, dist_from_start, use_heuristic)
 
-    # TODO(VI): fill in the take_action function
     def take_action(self, preconditions: set[str], postconditions: dict[str, set[str]]) -> set[str] | None:
-        # Your code here ---------------
-        pass
-        # ------------------------------
+        if any(pre not in self.state for pre in preconditions):
+            return None
+
+        ret_state = self.state.copy()
+        ret_state.update(postconditions["add"])
+
+        if not self.delete_relaxation:
+            ret_state.difference_update(postconditions["delete"])
+
+        return ret_state
     
     # TODO(VI): implement get_neighbors
     def get_neighbors(self) -> list[AbstractState]:

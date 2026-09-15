@@ -52,11 +52,9 @@ class MultiAgentGridState(AbstractState):
         return self.state == self.goal
     
     def compute_heuristic_admissible(self) -> float:
-        # TODO(IV): implement compute_heuristic_admissible
         return max(manhattan(state, goal) for state, goal in zip(self.state, self.goal))
     
     def compute_heuristic_inadmissible(self) -> float:
-        # TODO(IV): implement compute_heuristic_inadmissible
         return sum(manhattan(state, goal) for state, goal in zip(self.state, self.goal))
 
     # We override the compute_heuristic method to select between admissible and inadmissible heuristics
