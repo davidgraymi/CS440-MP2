@@ -34,6 +34,7 @@ def best_first_search(starting_state: AbstractState) -> list[AbstractState]:
         # print(f"State: {state}")
 
         if state.is_goal():
+            print(f"Visited states: {len(visited_states)}")
             return backtrack(visited_states, state)
 
         for neighbor in state.get_neighbors():
