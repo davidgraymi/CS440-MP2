@@ -3,6 +3,10 @@ from itertools import product
 from search import best_first_search
 from state import AbstractState
 
+RED = "\033[31m"
+GREEN = "\033[32m"
+RESET = "\033[0m"
+
 # A World is a collection of objects and actions that can be performed on those objects
 class World:
     def __init__(
@@ -112,9 +116,13 @@ class BlockWorld(World):
 
     @staticmethod
     def stack(blockA: str, blockB: str) -> tuple[set[str], dict[str, set[str]]]:
-        preconditions = set(BlockWorld.holding(blockA))
+        preconditions = set({
+            BlockWorld.holding(blockA)
+        })
         postconditions = {
-            "delete": set(BlockWorld.holding(blockA)), 
+            "delete": set({
+                BlockWorld.holding(blockA)
+            }), 
             "add": set({
                 BlockWorld.arm_is_free(),
                 BlockWorld.block_on_block(blockA, blockB)
@@ -150,30 +158,52 @@ class BooleanPredicatesState(AbstractState):
 
         return ret_state
     
-    # TODO(VI): implement get_neighbors
     def get_neighbors(self) -> list[AbstractState]:
-        # See the instructions for action grounding and prev_action.
-        # Your code here ---------------
-        pass
-        # ------------------------------
-    
-    # TODO(VI): implement is_goal
-    def is_goal(self) -> bool:
-        # Your code here ---------------
-        pass
-        # ------------------------------
-    
-    # TODO(VI): implement compute_delete_relaxation_heuristic
-    def compute_delete_relaxation_heuristic(self) -> float:
-        # Your code here ---------------
-        pass
-        # ------------------------------
+        neighbors = []
+        for action, inputs in self.world.action_inputs.items():
+            object_matrix = [self.world.objects_by_type[input] for input in inputs]
+            for args in product(*object_matrix):
+                pre, post = action(*args)
+                next_state: set[str] | None = self.take_action(pre, post)
+                if next_state != None:
+                    neighbors.append(
+                        BooleanPredicatesState(
+                            state=next_state,
+                            goal=self.goal,
+                            world=self.world,
+                            delete_relaxation=self.delete_relaxation,
+                            heuristic_type=self.heuristic_type,
+                            prev_action=(action, inputs),
+                            dist_from_start=self.dist_from_start + 1,
+                            use_heuristic=self.use_heuristic
+                        )
+                    )
 
-    # TODO(VI): implement compute_num_unsatisfied_goals_heuristic
+        # print("Neighbors:")
+        # for n in neighbors.copy():
+        #     added = set(n.state).difference(set(self.state))
+        #     deleted = set(self.state).difference(set(n.state))
+        #     print(f"    {RED}{deleted}{RESET}{GREEN}{added}{RESET}")
+
+        return neighbors
+    
+    def is_goal(self) -> bool:
+        return set(self.goal).issubset(set(self.state))
+    
+    def compute_delete_relaxation_heuristic(self) -> float:
+        relax = BooleanPredicatesState(
+            state=self.state,
+            goal=self.goal,
+            world=self.world,
+            delete_relaxation=True,
+            prev_action=self.prev_action,
+            dist_from_start=self.dist_from_start,
+            use_heuristic=self.use_heuristic
+        )
+        return len(best_first_search(relax))
+
     def compute_num_unsatisfied_goals_heuristic(self) -> float:
-        # Your code here ---------------
-        pass
-        # ------------------------------
+        return len(set(self.goal).difference(set(self.state)))
 
     def compute_heuristic(self) -> float:
         if self.heuristic_type == "delete_relaxation":
