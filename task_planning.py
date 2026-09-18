@@ -192,8 +192,8 @@ class BooleanPredicatesState(AbstractState):
     
     def compute_delete_relaxation_heuristic(self) -> float:
         relax = BooleanPredicatesState(
-            state=self.state,
-            goal=self.goal,
+            state=self.state.copy(),
+            goal=self.goal.copy(),
             world=self.world,
             delete_relaxation=True,
             prev_action=self.prev_action,
