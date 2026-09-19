@@ -3,10 +3,6 @@ from itertools import product
 from search import best_first_search
 from state import AbstractState
 
-RED = "\033[31m"
-GREEN = "\033[32m"
-RESET = "\033[0m"
-
 # A World is a collection of objects and actions that can be performed on those objects
 class World:
     def __init__(
@@ -75,7 +71,9 @@ class BlockWorld(World):
                 BlockWorld.holding(block)
             }), 
             "add": set({
-                BlockWorld.on_table(block)
+                BlockWorld.on_table(block),
+                BlockWorld.on_top(block),
+                BlockWorld.arm_is_free()
             })
         }
         return preconditions, postconditions
@@ -84,12 +82,14 @@ class BlockWorld(World):
     def pickup(block: str) -> tuple[set[str], dict[str, set[str]]]: # pickup a block from the table
         preconditions = set({
             BlockWorld.arm_is_free(),
-            BlockWorld.on_table(block)
+            BlockWorld.on_table(block),
+            BlockWorld.on_top(block)
         })
         postconditions = {
             "delete": set({
                 BlockWorld.arm_is_free(),
-                BlockWorld.on_table(block)
+                BlockWorld.on_table(block),
+                BlockWorld.on_top(block)
             }), 
             "add": set({
                 BlockWorld.holding(block)
@@ -101,15 +101,18 @@ class BlockWorld(World):
     def unstack(blockA: str, blockB: str) -> tuple[set[str], dict[str, set[str]]]: # unstack blockA from blockB
         preconditions = set({
             BlockWorld.block_on_block(blockA, blockB),
-            BlockWorld.arm_is_free()
+            BlockWorld.arm_is_free(),
+            BlockWorld.on_top(blockA)
         })
         postconditions = {
             "delete": set({
                 BlockWorld.block_on_block(blockA, blockB),
-                BlockWorld.arm_is_free()
+                BlockWorld.arm_is_free(),
+                BlockWorld.on_top(blockA)
             }), 
             "add": set({
-                BlockWorld.holding(blockA)
+                BlockWorld.holding(blockA),
+                BlockWorld.on_top(blockB)
             })
         }
         return preconditions, postconditions
@@ -117,15 +120,18 @@ class BlockWorld(World):
     @staticmethod
     def stack(blockA: str, blockB: str) -> tuple[set[str], dict[str, set[str]]]:
         preconditions = set({
-            BlockWorld.holding(blockA)
+            BlockWorld.holding(blockA),
+            BlockWorld.on_top(blockB)
         })
         postconditions = {
             "delete": set({
-                BlockWorld.holding(blockA)
+                BlockWorld.holding(blockA),
+                BlockWorld.on_top(blockB)
             }), 
             "add": set({
                 BlockWorld.arm_is_free(),
-                BlockWorld.block_on_block(blockA, blockB)
+                BlockWorld.block_on_block(blockA, blockB),
+                BlockWorld.on_top(blockA)
             })
         }
         return preconditions, postconditions
@@ -190,11 +196,12 @@ class BooleanPredicatesState(AbstractState):
             goal=self.goal.copy(),
             world=self.world,
             delete_relaxation=True,
+            heuristic_type="num_unsatisfied_goals",
             prev_action=self.prev_action,
-            dist_from_start=self.dist_from_start,
-            use_heuristic=self.use_heuristic
+            dist_from_start=0,
+            use_heuristic=True
         )
-        return len(best_first_search(relax))
+        return len(best_first_search(relax)) - 1
 
     def compute_num_unsatisfied_goals_heuristic(self) -> float:
         return len(set(self.goal).difference(set(self.state)))
