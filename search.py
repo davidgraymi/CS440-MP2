@@ -33,6 +33,9 @@ def best_first_search(starting_state: AbstractState) -> list[AbstractState]:
         state = heapq.heappop(frontier)
         # print(f"State: {state}")
 
+        if visited_states[state][1] != state.dist_from_start:
+            continue
+
         if state.is_goal():
             print(f"Visited states: {len(visited_states)}")
             return backtrack(visited_states, state)

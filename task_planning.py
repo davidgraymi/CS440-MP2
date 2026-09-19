@@ -179,12 +179,6 @@ class BooleanPredicatesState(AbstractState):
                         )
                     )
 
-        # print("Neighbors:")
-        # for n in neighbors.copy():
-        #     added = set(n.state).difference(set(self.state))
-        #     deleted = set(self.state).difference(set(n.state))
-        #     print(f"    {RED}{deleted}{RESET}{GREEN}{added}{RESET}")
-
         return neighbors
     
     def is_goal(self) -> bool:
